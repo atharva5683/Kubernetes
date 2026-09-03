@@ -1,32 +1,27 @@
 backend:
   image:
-    repository: docker.io/replace-me/devops-challenge-backend
-    tag: 1.0.0-bootstrap
+    repository: atharva038/devops-challenge-backend
+    tag: 1.0.0-b9-3abfed2f
     pullPolicy: Always
-
 frontend:
   image:
-    repository: docker.io/replace-me/devops-challenge-frontend
-    tag: 1.0.0-bootstrap
+    repository: atharva038/devops-challenge-frontend
+    tag: 1.0.0-b9-3abfed2f
     pullPolicy: Always
   service:
     type: LoadBalancer
-
 database:
   persistence:
     enabled: true
     size: 8Gi
     storageClass: gp3
-
 secret:
   create: false
   existingSecretName: challenge-db-secret
-
 awsSecretsManager:
   enabled: true
   region: ap-south-1
   secretName: devops-challenge-db-password
-
 monitoring:
   enabled: true
   prometheusReleaseLabel: monitoring

@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: mongodb
+  name: postgres
   labels:
     {{- include "devops-challenge.labels" . | nindent 4 }}
-    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/name: postgres
 spec:
-  serviceName: mongodb
+  serviceName: postgres
   replicas: 1
   selector:
     matchLabels:
-      {{- include "devops-challenge.selectorLabels" (dict "component" "mongodb" "root" .) | nindent 6 }}
+      {{- include "devops-challenge.selectorLabels" (dict "component" "postgres" "root" .) | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "devops-challenge.selectorLabels" (dict "component" "mongodb" "root" .) | nindent 8 }}
+        {{- include "devops-challenge.selectorLabels" (dict "component" "postgres" "root" .) | nindent 8 }}
         app.kubernetes.io/part-of: devops-challenge
         {{- if .Values.awsSecretsManager.enabled }}
         {{- end }}
@@ -25,57 +25,49 @@ spec:
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
-        runAsUser: 999
-        runAsGroup: 999
-        fsGroup: 999
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: mongodb
+        - name: postgres
           image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
           imagePullPolicy: {{ .Values.database.image.pullPolicy }}
           ports:
-            - name: mongodb
-              containerPort: 27017
+            - name: postgres
+              containerPort: 5432
               protocol: TCP
           env:
-            - name: MONGO_INITDB_DATABASE
+            - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
                   name: challenge-config
                   key: DB_NAME
-            - name: MONGO_INITDB_ROOT_USERNAME
+            - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
                   name: challenge-config
                   key: DB_USER
-            - name: MONGO_INITDB_ROOT_PASSWORD
+            - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "devops-challenge.secretName" . }}
-                  key: MONGO_PASSWORD
+                  key: DB_PASSWORD
           readinessProbe:
             exec:
-              command:
-                - mongosh
-                - --quiet
-                - --eval
-                - "db.adminCommand('ping')"
-            initialDelaySeconds: 10
+              command: ["/bin/sh", "-ec", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 5
             periodSeconds: 5
-            timeoutSeconds: 3
+            timeoutSeconds: 2
             failureThreshold: 6
           livenessProbe:
             exec:
-              command:
-                - mongosh
-                - --quiet
-                - --eval
-                - "db.adminCommand('ping')"
-            initialDelaySeconds: 30
+              command: ["/bin/sh", "-ec", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 20
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 2
             failureThreshold: 3
           resources:
             {{- toYaml .Values.database.resources | nindent 12 }}
@@ -85,7 +77,7 @@ spec:
               drop: ["ALL"]
           volumeMounts:
             - name: data
-              mountPath: /data/db
+              mountPath: /var/lib/postgresql/data
             - name: tmp
               mountPath: /tmp
             {{- if .Values.awsSecretsManager.enabled }}
@@ -127,16 +119,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongodb
+  name: postgres
   labels:
     {{- include "devops-challenge.labels" . | nindent 4 }}
-    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/name: postgres
 spec:
   clusterIP: None
   selector:
-    {{- include "devops-challenge.selectorLabels" (dict "component" "mongodb" "root" .) | nindent 4 }}
+    {{- include "devops-challenge.selectorLabels" (dict "component" "postgres" "root" .) | nindent 4 }}
   ports:
-    - name: mongodb
-      port: 27017
-      targetPort: mongodb
+    - name: postgres
+      port: 5432
+      targetPort: postgres
       protocol: TCP
