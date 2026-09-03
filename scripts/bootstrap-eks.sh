@@ -24,8 +24,8 @@ fi
 GITOPS_BRANCH="${GITOPS_BRANCH:-gitops}"
 ARGO_CD_CHART_VERSION="${ARGO_CD_CHART_VERSION:-10.7.0}"
 PROMETHEUS_STACK_CHART_VERSION="${PROMETHEUS_STACK_CHART_VERSION:-88.6.3}"
-SECRETS_STORE_CSI_VERSION="${SECRETS_STORE_CSI_VERSION:-1.4.8}"
-ASCP_VERSION="${ASCP_VERSION:-0.3.10}"
+SECRETS_STORE_CSI_VERSION="${SECRETS_STORE_CSI_VERSION:-1.6.0}"
+ASCP_VERSION="${ASCP_VERSION:-3.1.3}"
 
 # Configure kubectl for EKS
 aws eks update-kubeconfig \
@@ -39,19 +39,26 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 
 # Install Secrets Store CSI Driver
-helm upgrade --install secrets-store-csi-driver secrets-store-csi-driver/secrets-store-csi-driver \
+# Install Secrets Store CSI Driver with IRSA and Pod Identity token audiences
+helm upgrade --install secrets-store-csi-driver \
+  secrets-store-csi-driver/secrets-store-csi-driver \
   --namespace kube-system \
   --version "$SECRETS_STORE_CSI_VERSION" \
   --set syncSecret.enabled=true \
+  --set-string 'tokenRequests[0].audience=sts.amazonaws.com' \
+  --set-string 'tokenRequests[1].audience=pods.eks.amazonaws.com' \
   --wait \
-  --timeout 5m
+  --timeout 10m
 
 # Install AWS Secrets Provider (ASCP)
-helm upgrade --install secrets-provider-aws aws-secrets-manager/secrets-store-csi-driver-provider-aws \
+# Install AWS Secrets Manager provider
+helm upgrade --install secrets-provider-aws \
+  aws-secrets-manager/secrets-store-csi-driver-provider-aws \
   --namespace kube-system \
   --version "$ASCP_VERSION" \
+  --set secrets-store-csi-driver.install=false \
   --wait \
-  --timeout 5m
+  --timeout 10m
 
 kubectl create namespace monitoring --dry-run=client --output yaml | kubectl apply --filename -
 if ! kubectl get secret grafana-admin --namespace monitoring >/dev/null 2>&1; then
