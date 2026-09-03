@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'docker' }
+    agent any
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '20'))
@@ -10,7 +10,7 @@ pipeline {
     }
 
     parameters {
-        string(name: 'DOCKERHUB_NAMESPACE', defaultValue: 'replace-me', description: 'Docker Hub user or organization', trim: true)
+        string(name: 'DOCKERHUB_NAMESPACE', defaultValue: 'atharva038', description: 'Docker Hub user or organization', trim: true)
         string(name: 'GITHUB_REPOSITORY', defaultValue: 'https://github.com/atharva5683/Kubernetes', description: 'GitHub owner/repository', trim: true)
         string(name: 'GITOPS_BRANCH', defaultValue: 'gitops', description: 'Branch watched by Argo CD', trim: true)
     }
@@ -28,7 +28,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/atharva5683/Kubernetes'
             }
         }
 
@@ -38,8 +38,8 @@ pipeline {
                     if (params.DOCKERHUB_NAMESPACE == 'replace-me') {
                         error('Set the DOCKERHUB_NAMESPACE Jenkins parameter.')
                     }
-                    if (!(params.GITHUB_REPOSITORY ==~ /[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/)) {
-                        error('GITHUB_REPOSITORY must use owner/repository format.')
+                    if (!(params.GITHUB_REPOSITORY ==~ /[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/) && !(params.GITHUB_REPOSITORY ==~ /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/)) {
+                        error('GITHUB_REPOSITORY must use owner/repository or full GitHub URL format.')
                     }
 
                     def baseVersion = readFile(file: 'VERSION').trim()
@@ -235,7 +235,7 @@ pipeline {
 
     post {
         success {
-            echo "Docker images and GitOps release ${env.IMAGE_TAG} published. Argo CD will reconcile EKS."
+            echo "Docker images and GitOps release ${env.IMAGE_TAG} published. Argo CD will reconcile AKS."
         }
         always {
             junit allowEmptyResults: true, testResults: 'reports/junit.xml'

@@ -31,8 +31,8 @@ frontend:
 
 database:
   image:
-    repository: mongo
-    tag: 7.0-jammy
+    repository: postgres
+    tag: 16.4-alpine
     pullPolicy: IfNotPresent
   name: challenge
   user: challenge
