@@ -1,7 +1,9 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
   name: frontend
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
   labels:
     {{- include "devops-challenge.labels" . | nindent 4 }}
     app.kubernetes.io/name: frontend

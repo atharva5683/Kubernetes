@@ -1,12 +1,12 @@
 backend:
   image:
     repository: atharva038/devops-challenge-backend
-    tag: 1.0.0-b11-830a5147
+    tag: 1.0.0-b12-58577e71
     pullPolicy: Always
 frontend:
   image:
     repository: atharva038/devops-challenge-frontend
-    tag: 1.0.0-b11-830a5147
+    tag: 1.0.0-b12-58577e71
     pullPolicy: Always
   service:
     type: LoadBalancer
@@ -20,7 +20,7 @@ secret:
   existingSecretName: challenge-db-secret
 awsSecretsManager:
   enabled: true
-  region: ap-south-1
+  region: us-east-1
   secretName: devops-challenge-db-password
 monitoring:
   enabled: true
