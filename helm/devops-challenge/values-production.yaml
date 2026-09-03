@@ -16,17 +16,15 @@ database:
   persistence:
     enabled: true
     size: 8Gi
-    storageClass: managed-csi
+    storageClass: gp3
 
 secret:
   create: false
   existingSecretName: challenge-db-secret
 
-azureKeyVault:
+awsSecretsManager:
   enabled: true
-  name: ""
-  tenantId: ""
-  workloadIdentityClientId: ""
+  region: ap-south-1
   secretName: devops-challenge-db-password
 
 monitoring:

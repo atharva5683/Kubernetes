@@ -8,10 +8,9 @@ application:
   namespace: devops-challenge
   releaseName: devops-challenge
 
-azureKeyVault:
-  name: ""
-  tenantId: ""
-  workloadIdentityClientId: ""
+awsSecretsManager:
+  region: ap-south-1
+  secretName: devops-challenge-db-password
 
 syncPolicy:
   prune: true

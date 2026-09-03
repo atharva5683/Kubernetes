@@ -31,8 +31,8 @@ frontend:
 
 database:
   image:
-    repository: postgres
-    tag: 16.4-alpine
+    repository: mongo
+    tag: 7.0-jammy
     pullPolicy: IfNotPresent
   name: challenge
   user: challenge
@@ -53,11 +53,9 @@ secret:
   existingSecretName: challenge-db-secret
   localPassword: local-demo-password-change-me
 
-azureKeyVault:
+awsSecretsManager:
   enabled: false
-  name: ""
-  tenantId: ""
-  workloadIdentityClientId: ""
+  region: ap-south-1
   secretName: devops-challenge-db-password
   serviceAccountName: challenge-workload-identity
 

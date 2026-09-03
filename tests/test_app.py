@@ -39,5 +39,5 @@ def test_visits_uses_database(monkeypatch):
     response = client.get("/visits")
 
     assert response.status_code == 200
-    assert response.get_json() == {"database": "postgresql", "visits": 42}
+    assert response.get_json() == {"database": "mongodb", "visits": 42}
 

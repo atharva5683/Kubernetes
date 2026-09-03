@@ -1,10 +1,10 @@
-# AKS GitOps DevOps Challenge
+# EKS GitOps DevOps Challenge
 
 A production-style demonstration stack with a static Nginx frontend, Python API,
-and PostgreSQL dependency on Azure Kubernetes Service (AKS). Jenkins builds and
+and PostgreSQL dependency on Amazon Elastic Kubernetes Service (EKS). Jenkins builds and
 scans immutable images, publishes them to Docker Hub, and updates the image tags
 in the Helm production values. Argo CD detects that Git change and deploys it to
-AKS.
+EKS.
 
 ## Architecture
 
@@ -15,16 +15,16 @@ flowchart TD
     Scan --> Hub[Versioned images in Docker Hub]
     Hub --> GitOps[Helm tags on gitops branch]
     GitOps --> Argo[Argo CD auto-sync]
-    Argo --> AKS[Azure AKS]
+    Argo --> EKS[Amazon EKS]
     User[Browser] --> Frontend[Frontend pods]
     Frontend --> Backend[Backend pods]
     Backend --> DB[(PostgreSQL PVC)]
     Monitor[Prometheus and Grafana] --> Backend
-    KeyVault[Azure Key Vault] --> Backend
-    KeyVault --> DB
+    SecretsManager[AWS Secrets Manager] --> Backend
+    SecretsManager --> DB
 ```
 
-Jenkins never receives AKS credentials and never runs `kubectl apply`. Git is
+Jenkins never receives EKS credentials and never runs `kubectl apply`. Git is
 the deployment boundary; Argo CD is the only continuous delivery controller.
 
 ## Included
@@ -36,8 +36,8 @@ the deployment boundary; Argo CD is the only continuous delivery controller.
 - Jenkins unit test, image build, Trivy source/image scan, Docker Hub push, Helm
   values update, and GitHub `gitops` branch push.
 - Helm chart for two frontend pods, two backend pods, PostgreSQL StatefulSet,
-  Azure Disk PVC, Services, PodDisruptionBudgets, and health probes.
-- Azure Key Vault CSI integration with Microsoft Entra Workload Identity. The
+  Amazon EBS PVC (`gp3`), Services, PodDisruptionBudgets, and health probes.
+- AWS Secrets Manager CSI integration with EKS Pod Identity. The
   database password is not committed to Git.
 - Argo CD automatic sync with pruning and retry.
 - Prometheus Operator, Prometheus, Alertmanager, and Grafana installed by Helm.
@@ -62,7 +62,7 @@ Create an empty GitHub repository, then run:
 ```bash
 git init
 git add .
-git commit -m "Initial AKS GitOps challenge"
+git commit -m "Initial EKS GitOps challenge"
 git branch -M main
 git remote add origin https://github.com/YOUR_USER/devops-k8s-challenge.git
 git push -u origin main
@@ -72,7 +72,7 @@ git push origin main:gitops
 ```
 
 Use public Docker Hub repositories for the fastest demonstration. Private
-images require an AKS image pull secret, which is intentionally outside this
+images require an EKS image pull secret, which is intentionally outside this
 90-minute challenge.
 
 ## 2. Configure and run Jenkins
@@ -97,42 +97,40 @@ Set the build parameters:
 Run the pipeline once. It publishes both exact images and commits the new tags
 to `helm/devops-challenge/values-production.yaml` on `gitops`.
 
-More detail: [docs/JENKINS_SETUP.md](docs/JENKINS_SETUP.md).
+## 3. Provision EKS and AWS Secrets Manager
 
-## 3. Provision AKS and Azure Key Vault
-
-Prerequisites: Azure CLI, `kubectl`, Helm 3, OpenSSL, an Azure subscription, and
-permission to create AKS, managed identities, role assignments, and Key Vault
-secrets.
+Prerequisites: AWS CLI, `eksctl`, `kubectl`, Helm 3, OpenSSL, an AWS account, and
+permission to create EKS clusters, IAM roles, policies, and Secrets Manager secrets.
 
 ```bash
-az login
+aws configure
 
-export SUBSCRIPTION_ID="YOUR_AZURE_SUBSCRIPTION_ID"
+export AWS_REGION="ap-south-1"
 export DB_PASSWORD="use-a-long-random-demo-password"
 
-./scripts/provision-aks.sh
+./scripts/provision-eks.sh
 ```
 
-The script creates a two-node AKS cluster with OIDC, Workload Identity, and the
-Key Vault CSI add-on; creates Key Vault and a user-assigned identity; assigns
-`Key Vault Secrets User`; creates the federated credential; and stores the
-database password in Key Vault. Non-secret IDs are written under `.generated/`.
-
-More detail: [docs/AZURE_SETUP.md](docs/AZURE_SETUP.md).
+The script creates a two-node EKS cluster with OIDC and Pod Identity enabled;
+installs the EBS CSI add-on; creates the Secrets Manager secret; creates an IAM
+role and policy granting `secretsmanager:GetSecretValue` and
+`secretsmanager:DescribeSecret` for the specific secret; and creates an EKS Pod
+Identity association. Non-secret IDs are written under `.generated/`.
 
 ## 4. Install monitoring, Argo CD, and the application
 
 ```bash
 export GITHUB_REPO_URL="https://github.com/YOUR_USER/devops-k8s-challenge.git"
-./scripts/bootstrap-aks.sh
+./scripts/bootstrap-eks.sh
 ```
 
 The script uses Helm to install:
 
-1. `kube-prometheus-stack` in `monitoring`.
-2. Argo CD in `argocd`.
-3. The bootstrap chart that creates the Argo CD project and application.
+1. Secrets Store CSI Driver in `kube-system`.
+2. AWS Secrets Provider (ASCP) in `kube-system`.
+3. `kube-prometheus-stack` in `monitoring`.
+4. Argo CD in `argocd`.
+5. The bootstrap chart that creates the Argo CD project and application.
 
 Argo CD reads `values-production.yaml` from `gitops`, renders the application
 Helm chart, and deploys it to `devops-challenge`.
@@ -153,7 +151,7 @@ Get the public frontend address:
 kubectl get service frontend -n devops-challenge --watch
 ```
 
-Open the `EXTERNAL-IP` after Azure assigns it.
+Open the `EXTERNAL-IP` after AWS assigns it.
 
 ## Prometheus, Grafana, and Argo CD
 
@@ -214,8 +212,8 @@ This is a strong 90-minute challenge, not a complete production platform.
 PostgreSQL remains single-replica; Grafana and Prometheus data are ephemeral;
 there is no TLS ingress, network policy, database backup/restore, HPA, multi-zone
 database, image signing, policy admission, or environment promotion approval.
-For production, prefer Azure Database for PostgreSQL, private AKS networking,
-private endpoints for Key Vault, persistent monitoring storage, signed images,
+For production, prefer Amazon RDS for PostgreSQL, private EKS networking,
+VPC endpoints for Secrets Manager, persistent monitoring storage, signed images,
 policy enforcement, TLS ingress, and separate dev/stage/prod GitOps promotion.
 
 Use [docs/VIDEO_SCRIPT.md](docs/VIDEO_SCRIPT.md) for the 8–12 minute recording.

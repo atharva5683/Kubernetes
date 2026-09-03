@@ -4,7 +4,7 @@ import os
 import socket
 import time
 
-import psycopg
+import pymongo
 from flask import Flask, Response, jsonify, request
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, generate_latest
 
@@ -38,49 +38,36 @@ HTTP_REQUESTS = Counter(
 )
 DB_READY = Gauge(
     "challenge_database_ready",
-    "Whether the backend can currently query PostgreSQL",
+    "Whether the backend can currently query MongoDB",
 )
 
 
-def database_connection():
-    return psycopg.connect(
-        host=os.getenv("DB_HOST", "postgres"),
-        port=int(os.getenv("DB_PORT", "5432")),
-        dbname=os.getenv("DB_NAME", "challenge"),
-        user=os.getenv("DB_USER", "challenge"),
-        password=os.environ["DB_PASSWORD"],
-        connect_timeout=2,
-    )
+def _mongo_client():
+    host = os.getenv("DB_HOST", "mongodb")
+    port = int(os.getenv("DB_PORT", "27017"))
+    password = os.environ["MONGO_PASSWORD"]
+    user = os.getenv("DB_USER", "challenge")
+    uri = f"mongodb://{user}:{password}@{host}:{port}/"
+    return pymongo.MongoClient(uri, serverSelectionTimeoutMS=2000)
 
 
 def check_database() -> None:
-    with database_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-            cursor.fetchone()
+    client = _mongo_client()
+    client.admin.command("ping")
+    client.close()
 
 
 def increment_visits() -> int:
-    with database_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS visits (
-                    id INTEGER PRIMARY KEY,
-                    count BIGINT NOT NULL
-                )
-                """
-            )
-            cursor.execute(
-                """
-                INSERT INTO visits (id, count) VALUES (1, 1)
-                ON CONFLICT (id)
-                DO UPDATE SET count = visits.count + 1
-                RETURNING count
-                """
-            )
-            row = cursor.fetchone()
-            return int(row[0])
+    client = _mongo_client()
+    db = client[os.getenv("DB_NAME", "challenge")]
+    result = db.visits.find_one_and_update(
+        {"_id": "counter"},
+        {"$inc": {"count": 1}},
+        upsert=True,
+        return_document=pymongo.ReturnDocument.AFTER,
+    )
+    client.close()
+    return int(result["count"])
 
 
 @app.after_request
@@ -112,7 +99,7 @@ def visits():
     try:
         count = increment_visits()
         logger.info("visit_recorded count=%s", count)
-        return jsonify({"visits": count, "database": "postgresql"})
+        return jsonify({"visits": count, "database": "mongodb"})
     except Exception as exc:
         logger.error("visit_failed error_type=%s error=%s", type(exc).__name__, exc)
         return jsonify({"error": "database unavailable"}), 503
@@ -133,7 +120,7 @@ def readiness():
         DB_READY.set(0)
         logger.warning(
             "readiness_failed db_host=%s error_type=%s error=%s",
-            os.getenv("DB_HOST", "postgres"),
+            os.getenv("DB_HOST", "mongodb"),
             type(exc).__name__,
             exc,
         )

@@ -18,12 +18,10 @@ spec:
       valueFiles:
         - values-production.yaml
       parameters:
-        - name: azureKeyVault.name
-          value: {{ required "azureKeyVault.name is required" .Values.azureKeyVault.name | quote }}
-        - name: azureKeyVault.tenantId
-          value: {{ required "azureKeyVault.tenantId is required" .Values.azureKeyVault.tenantId | quote }}
-        - name: azureKeyVault.workloadIdentityClientId
-          value: {{ required "azureKeyVault.workloadIdentityClientId is required" .Values.azureKeyVault.workloadIdentityClientId | quote }}
+        - name: awsSecretsManager.region
+          value: {{ required "awsSecretsManager.region is required" .Values.awsSecretsManager.region | quote }}
+        - name: awsSecretsManager.secretName
+          value: {{ required "awsSecretsManager.secretName is required" .Values.awsSecretsManager.secretName | quote }}
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ .Values.application.namespace }}

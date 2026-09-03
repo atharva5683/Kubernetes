@@ -1,74 +1,81 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres
+  name: mongodb
   labels:
     {{- include "devops-challenge.labels" . | nindent 4 }}
-    app.kubernetes.io/name: postgres
+    app.kubernetes.io/name: mongodb
 spec:
-  serviceName: postgres
+  serviceName: mongodb
   replicas: 1
   selector:
     matchLabels:
-      {{- include "devops-challenge.selectorLabels" (dict "component" "postgres" "root" .) | nindent 6 }}
+      {{- include "devops-challenge.selectorLabels" (dict "component" "mongodb" "root" .) | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "devops-challenge.selectorLabels" (dict "component" "postgres" "root" .) | nindent 8 }}
+        {{- include "devops-challenge.selectorLabels" (dict "component" "mongodb" "root" .) | nindent 8 }}
         app.kubernetes.io/part-of: devops-challenge
-        {{- if .Values.azureKeyVault.enabled }}
-        azure.workload.identity/use: "true"
+        {{- if .Values.awsSecretsManager.enabled }}
         {{- end }}
     spec:
-      {{- if .Values.azureKeyVault.enabled }}
+      {{- if .Values.awsSecretsManager.enabled }}
       serviceAccountName: {{ include "devops-challenge.serviceAccountName" . }}
       {{- end }}
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
-        runAsUser: 70
-        runAsGroup: 70
-        fsGroup: 70
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: postgres
+        - name: mongodb
           image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
           imagePullPolicy: {{ .Values.database.image.pullPolicy }}
           ports:
-            - name: postgres
-              containerPort: 5432
+            - name: mongodb
+              containerPort: 27017
               protocol: TCP
           env:
-            - name: POSTGRES_DB
+            - name: MONGO_INITDB_DATABASE
               valueFrom:
                 configMapKeyRef:
                   name: challenge-config
                   key: DB_NAME
-            - name: POSTGRES_USER
+            - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 configMapKeyRef:
                   name: challenge-config
                   key: DB_USER
-            - name: POSTGRES_PASSWORD
+            - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "devops-challenge.secretName" . }}
-                  key: DB_PASSWORD
+                  key: MONGO_PASSWORD
           readinessProbe:
             exec:
-              command: ["/bin/sh", "-ec", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
-            initialDelaySeconds: 5
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 10
             periodSeconds: 5
-            timeoutSeconds: 2
+            timeoutSeconds: 3
             failureThreshold: 6
           livenessProbe:
             exec:
-              command: ["/bin/sh", "-ec", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
-            initialDelaySeconds: 20
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 2
+            timeoutSeconds: 3
             failureThreshold: 3
           resources:
             {{- toYaml .Values.database.resources | nindent 12 }}
@@ -78,10 +85,10 @@ spec:
               drop: ["ALL"]
           volumeMounts:
             - name: data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /data/db
             - name: tmp
               mountPath: /tmp
-            {{- if .Values.azureKeyVault.enabled }}
+            {{- if .Values.awsSecretsManager.enabled }}
             - name: secrets-store
               mountPath: /mnt/secrets-store
               readOnly: true
@@ -93,7 +100,7 @@ spec:
         - name: data
           emptyDir: {}
         {{- end }}
-        {{- if .Values.azureKeyVault.enabled }}
+        {{- if .Values.awsSecretsManager.enabled }}
         - name: secrets-store
           csi:
             driver: secrets-store.csi.k8s.io
@@ -120,16 +127,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: mongodb
   labels:
     {{- include "devops-challenge.labels" . | nindent 4 }}
-    app.kubernetes.io/name: postgres
+    app.kubernetes.io/name: mongodb
 spec:
   clusterIP: None
   selector:
-    {{- include "devops-challenge.selectorLabels" (dict "component" "postgres" "root" .) | nindent 4 }}
+    {{- include "devops-challenge.selectorLabels" (dict "component" "mongodb" "root" .) | nindent 4 }}
   ports:
-    - name: postgres
-      port: 5432
-      targetPort: postgres
+    - name: mongodb
+      port: 27017
+      targetPort: mongodb
       protocol: TCP

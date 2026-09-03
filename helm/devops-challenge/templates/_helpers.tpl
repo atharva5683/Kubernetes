@@ -16,5 +16,5 @@ app.kubernetes.io/instance: {{ .root.Release.Name }}
 {{- end }}
 
 {{- define "devops-challenge.serviceAccountName" -}}
-{{- .Values.azureKeyVault.serviceAccountName -}}
+{{- .Values.awsSecretsManager.serviceAccountName -}}
 {{- end }}

@@ -235,7 +235,7 @@ pipeline {
 
     post {
         success {
-            echo "Docker images and GitOps release ${env.IMAGE_TAG} published. Argo CD will reconcile AKS."
+            echo "Docker images and GitOps release ${env.IMAGE_TAG} published. Argo CD will reconcile EKS."
         }
         always {
             junit allowEmptyResults: true, testResults: 'reports/junit.xml'

@@ -5,8 +5,8 @@ metadata:
   labels:
     {{- include "devops-challenge.labels" . | nindent 4 }}
 data:
-  DB_HOST: postgres
-  DB_PORT: "5432"
+  DB_HOST: mongodb
+  DB_PORT: "27017"
   DB_NAME: {{ .Values.database.name | quote }}
   DB_USER: {{ .Values.database.user | quote }}
   LOG_LEVEL: INFO

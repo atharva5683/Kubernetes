@@ -21,8 +21,7 @@ spec:
       labels:
         {{- include "devops-challenge.selectorLabels" (dict "component" "backend" "root" .) | nindent 8 }}
         app.kubernetes.io/part-of: devops-challenge
-        {{- if .Values.azureKeyVault.enabled }}
-        azure.workload.identity/use: "true"
+        {{- if .Values.awsSecretsManager.enabled }}
         {{- end }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
@@ -30,7 +29,7 @@ spec:
         prometheus.io/path: /metrics
         prometheus.io/port: "8080"
     spec:
-      {{- if .Values.azureKeyVault.enabled }}
+      {{- if .Values.awsSecretsManager.enabled }}
       serviceAccountName: {{ include "devops-challenge.serviceAccountName" . }}
       {{- end }}
       terminationGracePeriodSeconds: 30
@@ -92,7 +91,7 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            {{- if .Values.azureKeyVault.enabled }}
+            {{- if .Values.awsSecretsManager.enabled }}
             - name: secrets-store
               mountPath: /mnt/secrets-store
               readOnly: true
@@ -100,7 +99,7 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
-        {{- if .Values.azureKeyVault.enabled }}
+        {{- if .Values.awsSecretsManager.enabled }}
         - name: secrets-store
           csi:
             driver: secrets-store.csi.k8s.io
