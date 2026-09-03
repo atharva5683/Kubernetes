@@ -3,5 +3,5 @@ name: devops-challenge
 description: Frontend, backend, and PostgreSQL stack for AKS
 type: application
 version: 0.1.0
-appVersion: "1.0.0-b18-61cccb97"
+appVersion: "1.0.0-b19-028db82e"
 kubeVersion: ">=1.29.0-0"
