@@ -107,7 +107,9 @@ spec:
     - metadata:
         name: data
         labels:
-          {{- include "devops-challenge.labels" . | nindent 10 }}
+          app.kubernetes.io/name: postgres
+          app.kubernetes.io/instance: {{ .Release.Name }}
+          app.kubernetes.io/part-of: devops-challenge
       spec:
         accessModes: ["ReadWriteOnce"]
         {{- if .Values.database.persistence.storageClass }}
