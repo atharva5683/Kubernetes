@@ -47,11 +47,6 @@ spec:
                 configMapKeyRef:
                   name: challenge-config
                   key: DB_NAME
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: challenge-config
-                  key: DB_NAME
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
