@@ -1,0 +1,42 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend
+  labels:
+    {{- include "devops-challenge.labels" . | nindent 4 }}
+    release: {{ .Values.monitoring.prometheusReleaseLabel | quote }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 5s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devops-challenge
+  labels:
+    {{- include "devops-challenge.labels" . | nindent 4 }}
+    release: {{ .Values.monitoring.prometheusReleaseLabel | quote }}
+spec:
+  groups:
+    - name: devops-challenge.rules
+      rules:
+        - alert: ChallengeDatabaseNotReady
+          expr: challenge_database_ready == 0
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: Backend cannot reach PostgreSQL
+            description: The backend readiness check has reported an unavailable database for two minutes.
+{{- end }}

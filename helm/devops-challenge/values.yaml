@@ -1,0 +1,70 @@
+backend:
+  replicaCount: 2
+  image:
+    repository: docker.io/example/devops-challenge-backend
+    tag: 1.0.0-bootstrap
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: docker.io/example/devops-challenge-frontend
+    tag: 1.0.0-bootstrap
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+database:
+  image:
+    repository: postgres
+    tag: 16.4-alpine
+    pullPolicy: IfNotPresent
+  name: challenge
+  user: challenge
+  persistence:
+    enabled: false
+    size: 8Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+secret:
+  create: true
+  existingSecretName: challenge-db-secret
+  localPassword: local-demo-password-change-me
+
+azureKeyVault:
+  enabled: false
+  name: ""
+  tenantId: ""
+  workloadIdentityClientId: ""
+  secretName: devops-challenge-db-password
+  serviceAccountName: challenge-workload-identity
+
+monitoring:
+  enabled: true
+  prometheusReleaseLabel: monitoring
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

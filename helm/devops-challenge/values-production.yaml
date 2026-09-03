@@ -1,0 +1,34 @@
+backend:
+  image:
+    repository: docker.io/replace-me/devops-challenge-backend
+    tag: 1.0.0-bootstrap
+    pullPolicy: Always
+
+frontend:
+  image:
+    repository: docker.io/replace-me/devops-challenge-frontend
+    tag: 1.0.0-bootstrap
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+
+database:
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: managed-csi
+
+secret:
+  create: false
+  existingSecretName: challenge-db-secret
+
+azureKeyVault:
+  enabled: true
+  name: ""
+  tenantId: ""
+  workloadIdentityClientId: ""
+  secretName: devops-challenge-db-password
+
+monitoring:
+  enabled: true
+  prometheusReleaseLabel: monitoring

@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: devops-challenge
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: devops-challenge
+spec:
+  description: Least-scope Argo CD project for the AKS challenge
+  sourceRepos:
+    - {{ .Values.git.repositoryUrl | quote }}
+  destinations:
+    - namespace: {{ .Values.application.namespace | quote }}
+      server: https://kubernetes.default.svc
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

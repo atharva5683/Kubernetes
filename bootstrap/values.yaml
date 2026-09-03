@@ -1,0 +1,18 @@
+git:
+  repositoryUrl: https://github.com/atharva5683/Kubernetes
+  targetRevision: gitops
+  chartPath: helm/devops-challenge
+
+application:
+  name: devops-challenge
+  namespace: devops-challenge
+  releaseName: devops-challenge
+
+azureKeyVault:
+  name: ""
+  tenantId: ""
+  workloadIdentityClientId: ""
+
+syncPolicy:
+  prune: true
+  selfHeal: false

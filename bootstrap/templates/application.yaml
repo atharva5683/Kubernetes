@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.application.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/part-of: devops-challenge
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: devops-challenge
+  source:
+    repoURL: {{ required "git.repositoryUrl is required" .Values.git.repositoryUrl | quote }}
+    targetRevision: {{ .Values.git.targetRevision | quote }}
+    path: {{ .Values.git.chartPath | quote }}
+    helm:
+      releaseName: {{ .Values.application.releaseName }}
+      valueFiles:
+        - values-production.yaml
+      parameters:
+        - name: azureKeyVault.name
+          value: {{ required "azureKeyVault.name is required" .Values.azureKeyVault.name | quote }}
+        - name: azureKeyVault.tenantId
+          value: {{ required "azureKeyVault.tenantId is required" .Values.azureKeyVault.tenantId | quote }}
+        - name: azureKeyVault.workloadIdentityClientId
+          value: {{ required "azureKeyVault.workloadIdentityClientId is required" .Values.azureKeyVault.workloadIdentityClientId | quote }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.application.namespace }}
+  syncPolicy:
+    automated:
+      prune: {{ .Values.syncPolicy.prune }}
+      selfHeal: {{ .Values.syncPolicy.selfHeal }}
+      allowEmpty: false
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - SkipDryRunOnMissingResource=true

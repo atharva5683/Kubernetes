@@ -1,0 +1,17 @@
+.git
+.generated
+.pytest_cache
+.trivy-cache
+.venv
+__pycache__
+*.pyc
+*.zip
+bootstrap
+docs
+helm
+monitoring
+platform
+reports
+scripts
+Jenkinsfile
+README.md
