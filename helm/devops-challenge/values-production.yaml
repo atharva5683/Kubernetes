@@ -1,12 +1,12 @@
 backend:
   image:
     repository: atharva038/devops-challenge-backend
-    tag: 1.0.0-b16-a52f7aad
+    tag: 1.0.0-b17-caf20475
     pullPolicy: Always
 frontend:
   image:
     repository: atharva038/devops-challenge-frontend
-    tag: 1.0.0-b16-a52f7aad
+    tag: 1.0.0-b17-caf20475
     pullPolicy: Always
   service:
     type: LoadBalancer
